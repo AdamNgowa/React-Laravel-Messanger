@@ -1,4 +1,5 @@
 import { usePage } from "@inertiajs/react";
+import Echo from "laravel-echo";
 import { useEffect } from "react";
 
 const ChatLayout = ({ children }) => {
@@ -22,6 +23,10 @@ const ChatLayout = ({ children }) => {
             .error((error) => {
                 console.log("error", error);
             });
+
+        return () => {
+            Echo.leave("online");
+        };
     }, []);
 
     return (
