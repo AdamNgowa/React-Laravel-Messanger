@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Broadcast;
-
-Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+//This code gives browser permission to acces payload
+Broadcast::channel('online', function ($user) {
+    return $user;
 });
