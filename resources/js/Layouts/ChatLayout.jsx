@@ -1,39 +1,82 @@
 import { usePage } from "@inertiajs/react";
-import Echo from "laravel-echo";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const ChatLayout = ({ children }) => {
     const page = usePage();
     const conversations = page.props.conversations;
-    const selctedConversation = page.props.selectedConversation;
+    const selectedConversation = page.props.selectedConversation;
+    const [localConversations, setLocalConversations] = useState([]);
+    const [sortedConversations, setSortedConversations] = useState([]);
+    const [onlineUsers, setOnlineUsers] = useState({});
+
+    const isUserOnline = (userId) => onlineUsers[userId];
+
     console.log("conversations", conversations);
-    console.log("selctedConversation", selctedConversation);
+    console.log("selectedConversation", selectedConversation);
 
     useEffect(() => {
-        Echo.join("online")
+        setSortedConversations(
+            localConversations.sort((a, b) => {
+                //If a is greater than b it should be at the bottom (1),otherwise it will be on top(-1)
+                if (a.blocked_at && b.blocked_at) {
+                    return a.blocked_at > b.blocked_at ? 1 : -1;
+                } else if (a.blocked_at) {
+                    return 1;
+                } else if (b.blocked_at) {
+                    return -1;
+                }
+                if (a.last_message_date && b.last_message_date) {
+                    return b.last_message_date.localeCompare(
+                        a.last_message_date,
+                    );
+                } else if (a.last_message_date) {
+                    return -1;
+                } else if (b.last_message_date) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }),
+        );
+    }, [conversations]);
+    useEffect(() => {
+        setLocalConversations(conversations);
+    }, [conversations]);
+
+    useEffect(() => {
+        window.Echo.join("online")
             .here((users) => {
-                console.log("here", users);
+                const onlineUsersObj = Object.fromEntries(
+                    users.map((user) => [user.id, user]),
+                );
+
+                setOnlineUsers((prevOnlineUsers) => {
+                    return { ...prevOnlineUsers, ...onlineUsersObj };
+                });
             })
             .joining((user) => {
-                console.log("joining", user);
+                setOnlineUsers((prevOnlineUsers) => {
+                    updatedUsers = { ...prevOnlineUsers };
+                    updatedUsers[users.id] = user;
+                    return updatedUsers;
+                });
             })
             .leaving((user) => {
-                console.log("leaving", user);
+                setOnlineUsers((prevOnlineUsers) => {
+                    updatedUsers = { ...prevOnlineUsers };
+                    delete updatedUsers[user.id];
+                    return updatedUsers;
+                });
             })
             .error((error) => {
                 console.log("error", error);
             });
 
         return () => {
-            Echo.leave("online");
+            window.Echo.leave("online");
         };
     }, []);
 
-    return (
-        <>
-            ChatLayout
-            <div>{children}</div>
-        </>
-    );
+    return <></>;
 };
 export default ChatLayout;
